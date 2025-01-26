@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>  نظام الحضور الذكي </title>
+    <title>نظام الحضور الذكي</title>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
     <style>
         body {
-            background-color: #e0f7fa; /* Light bluish background for easier scanning contrast */
+            background-color: #e0f7fa;
             font-family: Arial, sans-serif;
             max-width: 800px;
             margin: 20px auto;
@@ -45,95 +45,42 @@
 </head>
 <body>
     <h1>نظام الحضور الذكي</h1>
-    
     <button id="toggleBtn">بدء جلسة الحضور</button>
     <div id="statusIndicator" class="inactive" title="حالة الجلسة"></div>
-    
     <div id="qrContainer"></div>
 
     <script>
-        // =====================
-        // CONFIGURATION
-        // =====================
-        const SECRET_PHRASE = 'SCHOOL_SECRET_2024'; // 🔑 CHANGE THIS MONTHLY
-        const REFRESH_INTERVAL = 10000; // 10 seconds
-        const VALIDITY_WINDOW = 15000; // 15 seconds
-        
-        // =====================
-        // APP STATE
-        // =====================
+        // Configurations
+        const SAUDI_OFFSET = 3 * 60 * 60 * 1000;
+        const SECRET_PHRASE = 'SCHOOL_SECRET_2024';
+        const REFRESH_INTERVAL = 10000;
+        const VALIDITY_WINDOW = 15;
+
         let generationInterval = null;
         let currentSessionId = null;
-        let lastGeneratedToken = null;
-
-        // =====================
-        // ELEMENTS
-        // =====================
         const toggleBtn = document.getElementById('toggleBtn');
         const statusIndicator = document.getElementById('statusIndicator');
         const qrContainer = document.getElementById('qrContainer');
 
-        // =====================
-        // EVENT HANDLERS
-        // =====================
-        toggleBtn.addEventListener('click', toggleSession);
-
-        function toggleSession() {
-            if (!generationInterval) {
-                startNewSession();
-            } else {
-                endCurrentSession();
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = (hash << 5) - hash + char;
+                hash |= 0;
             }
-        }
-
-        // =====================
-        // CORE FUNCTIONS
-        // =====================
-        function startNewSession() {
-            // Generate unique session ID
-            currentSessionId = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-            
-            // Initial generation
-            generateNewQR();
-            
-            // Start interval
-            generationInterval = setInterval(generateNewQR, REFRESH_INTERVAL);
-            
-            // Update UI
-            toggleBtn.textContent = 'إيقاف جلسة الحضور';
-            toggleBtn.style.background = '#ff4444';
-            statusIndicator.className = 'active';
-            
-            // Broadcast session start to student apps
-            updateSessionStatus(true);
-        }
-
-        function endCurrentSession() {
-            clearInterval(generationInterval);
-            generationInterval = null;
-            currentSessionId = null;
-            
-            // Update UI
-            toggleBtn.textContent = 'بدء جلسة الحضور';
-            toggleBtn.style.background = '#4CAF50';
-            statusIndicator.className = 'inactive';
-            qrContainer.innerHTML = '';
-            
-            // Broadcast session end
-            updateSessionStatus(false);
+            return Math.abs(hash).toString(36).slice(-8).padStart(8, '0');
         }
 
         function generateNewQR() {
-            const timestamp = Math.floor(Date.now() / 10000);
+            const timestamp = Math.floor((Date.now() + SAUDI_OFFSET) / 1000);
             const payload = {
                 t: timestamp,
                 s: currentSessionId,
-                h: simpleHash(timestamp + currentSessionId + SECRET_PHRASE)
+                h: simpleHash(`${timestamp}${currentSessionId}${SECRET_PHRASE}`)
             };
-
-            const token = btoa(JSON.stringify(payload)).replace(/=/g, '');
-            lastGeneratedToken = token;
-
+            const token = btoa(JSON.stringify(payload)).replace(/=+$/, '');
+            
             qrContainer.innerHTML = '';
             new QRCode(qrContainer, {
                 text: token,
@@ -145,28 +92,28 @@
             });
         }
 
-        // =====================
-        // SECURITY HELPERS
-        // =====================
-        function simpleHash(str) {
-            // Basic obfuscation (not cryptographic security)
-            let hash = 0;
-            for (let i = 0; i < str.length; i++) {
-                hash = (hash << 5) - hash + str.charCodeAt(i);
-                hash |= 0;
-            }
-            return hash.toString(36).slice(-8);
+        function startNewSession() {
+            currentSessionId = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+            generateNewQR();
+            generationInterval = setInterval(generateNewQR, REFRESH_INTERVAL);
+            toggleBtn.textContent = 'إيقاف جلسة الحضور';
+            toggleBtn.style.background = '#ff4444';
+            statusIndicator.className = 'active';
         }
 
-        function updateSessionStatus(isActive) {
-            // Store session status in GitHub (using gist)
-            // Create a free GitHub gist and update this URL
-            const GIST_URL = 'https://gist.githubusercontent.com/.../raw/';
-            fetch(GIST_URL, {
-                method: 'PUT',
-                body: JSON.stringify({ active: isActive })
-            }).catch(console.error);
+        function endCurrentSession() {
+            clearInterval(generationInterval);
+            generationInterval = null;
+            currentSessionId = null;
+            toggleBtn.textContent = 'بدء جلسة الحضور';
+            toggleBtn.style.background = '#4CAF50';
+            statusIndicator.className = 'inactive';
+            qrContainer.innerHTML = '';
         }
+
+        toggleBtn.addEventListener('click', () => {
+            generationInterval ? endCurrentSession() : startNewSession();
+        });
     </script>
 </body>
 </html>
