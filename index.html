@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام الحضور الذكي</title>
+    <title>  نظام الحضور الذكي </title>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
     <style>
         body {
@@ -51,17 +51,13 @@
     
     <div id="qrContainer"></div>
 
-    <!-- Optional: Include an audio alert when a session starts or ends -->
-    <audio id="startSound" src="https://example.com/start-sound.mp3" preload="auto"></audio>
-    <audio id="endSound" src="https://example.com/end-sound.mp3" preload="auto"></audio>
-
     <script>
         // =====================
         // CONFIGURATION
         // =====================
         const SECRET_PHRASE = 'SCHOOL_SECRET_2024'; // 🔑 CHANGE THIS MONTHLY
         const REFRESH_INTERVAL = 10000; // 10 seconds
-        const VALIDITY_WINDOW_SECONDS = 30; // 30 seconds
+        const VALIDITY_WINDOW = 15000; // 15 seconds
         
         // =====================
         // APP STATE
@@ -76,17 +72,12 @@
         const toggleBtn = document.getElementById('toggleBtn');
         const statusIndicator = document.getElementById('statusIndicator');
         const qrContainer = document.getElementById('qrContainer');
-        const startSound = document.getElementById('startSound');
-        const endSound = document.getElementById('endSound');
 
         // =====================
         // EVENT HANDLERS
         // =====================
         toggleBtn.addEventListener('click', toggleSession);
 
-        // =====================
-        // CORE FUNCTIONS
-        // =====================
         function toggleSession() {
             if (!generationInterval) {
                 startNewSession();
@@ -95,9 +86,12 @@
             }
         }
 
+        // =====================
+        // CORE FUNCTIONS
+        // =====================
         function startNewSession() {
             // Generate unique session ID
-            currentSessionId = generateSessionId();
+            currentSessionId = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
             
             // Initial generation
             generateNewQR();
@@ -110,13 +104,8 @@
             toggleBtn.style.background = '#ff4444';
             statusIndicator.className = 'active';
             
-            // Play start sound
-            startSound.play().catch(err => console.error('Audio play error:', err));
-
             // Broadcast session start to student apps
             updateSessionStatus(true);
-            
-            console.log('جلسة الحضور بدأت. Session ID:', currentSessionId);
         }
 
         function endCurrentSession() {
@@ -130,26 +119,16 @@
             statusIndicator.className = 'inactive';
             qrContainer.innerHTML = '';
             
-            // Play end sound
-            endSound.play().catch(err => console.error('Audio play error:', err));
-            
             // Broadcast session end
             updateSessionStatus(false);
-            
-            console.log('جلسة الحضور انتهت.');
-        }
-
-        function generateSessionId() {
-            // Generate a unique session ID using current time and random characters
-            return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
         }
 
         function generateNewQR() {
-            const timestamp = getSaudiTimestampSeconds(); // Unix timestamp in seconds
+            const timestamp = Math.floor(Date.now() / 10000);
             const payload = {
-                t: timestamp, // Unix timestamp in seconds
+                t: timestamp,
                 s: currentSessionId,
-                h: simpleHash(`${timestamp}${currentSessionId}${SECRET_PHRASE}`)
+                h: simpleHash(timestamp + currentSessionId + SECRET_PHRASE)
             };
 
             const token = btoa(JSON.stringify(payload)).replace(/=/g, '');
@@ -164,24 +143,6 @@
                 colorLight: "#ffffff",
                 correctLevel: QRCode.CorrectLevel.H
             });
-
-            // For debugging: Log the payload
-            console.log('Generated QR Payload:', payload);
-        }
-
-        // =====================
-        // TIMEZONE HELPERS
-        // =====================
-        function getSaudiTime() {
-            const now = new Date();
-            // Convert current time to Saudi Arabia timezone
-            const saudiTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Riyadh' }));
-            return saudiTime;
-        }
-
-        function getSaudiTimestampSeconds() {
-            const saudiTime = getSaudiTime();
-            return Math.floor(saudiTime.getTime() / 1000);
         }
 
         // =====================
@@ -199,25 +160,12 @@
 
         function updateSessionStatus(isActive) {
             // Store session status in GitHub (using gist)
-            // 🔑 Replace with your actual Gist URL
-            const GIST_URL = 'https://gist.githubusercontent.com/your-username/your-gist-id/raw/'; 
+            // Create a free GitHub gist and update this URL
+            const GIST_URL = 'https://gist.githubusercontent.com/.../raw/';
             fetch(GIST_URL, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({ active: isActive })
-            })
-            .then(response => {
-                if (response.ok) {
-                    console.log(`Session status updated: ${isActive ? 'Active' : 'Inactive'}`);
-                } else {
-                    console.error('Failed to update session status.');
-                }
-            })
-            .catch(error => {
-                console.error('Error updating session status:', error);
-            });
+            }).catch(console.error);
         }
     </script>
 </body>
