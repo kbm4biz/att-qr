@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>  نظام الحضور الذكي </title>
+    <title>نظام الحضور الذكي</title>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
     <style>
         body {
@@ -57,7 +57,7 @@
         // =====================
         const SECRET_PHRASE = 'SCHOOL_SECRET_2024'; // 🔑 CHANGE THIS MONTHLY
         const REFRESH_INTERVAL = 10000; // 10 seconds
-        const VALIDITY_WINDOW = 15000; // 15 seconds
+        const VALIDITY_WINDOW = 30; // 30 seconds (Adjusted for alignment)
         
         // =====================
         // APP STATE
@@ -91,7 +91,7 @@
         // =====================
         function startNewSession() {
             // Generate unique session ID
-            currentSessionId = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+            currentSessionId = generateSessionId();
             
             // Initial generation
             generateNewQR();
@@ -123,10 +123,15 @@
             updateSessionStatus(false);
         }
 
+        function generateSessionId() {
+            // Generate a unique session ID using current time and random characters
+            return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+        }
+
         function generateNewQR() {
-            const timestamp = Math.floor(Date.now() / 10000);
+            const timestamp = getSaudiTimestampSeconds(); // Updated timestamp generation
             const payload = {
-                t: timestamp,
+                t: timestamp, // Unix timestamp in seconds
                 s: currentSessionId,
                 h: simpleHash(timestamp + currentSessionId + SECRET_PHRASE)
             };
@@ -143,6 +148,24 @@
                 colorLight: "#ffffff",
                 correctLevel: QRCode.CorrectLevel.H
             });
+
+            // For debugging: Log the payload
+            console.log('Generated QR Payload:', payload);
+        }
+
+        // =====================
+        // TIMEZONE HELPERS
+        // =====================
+        function getSaudiTime() {
+            const now = new Date();
+            // Convert current time to Saudi Arabia timezone
+            const saudiTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Riyadh' }));
+            return saudiTime;
+        }
+
+        function getSaudiTimestampSeconds() {
+            const saudiTime = getSaudiTime();
+            return Math.floor(saudiTime.getTime() / 1000);
         }
 
         // =====================
@@ -161,7 +184,7 @@
         function updateSessionStatus(isActive) {
             // Store session status in GitHub (using gist)
             // Create a free GitHub gist and update this URL
-            const GIST_URL = 'https://gist.githubusercontent.com/.../raw/';
+            const GIST_URL = 'https://gist.githubusercontent.com/.../raw/'; // 🔑 Replace with your actual Gist URL
             fetch(GIST_URL, {
                 method: 'PUT',
                 body: JSON.stringify({ active: isActive })
