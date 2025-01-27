@@ -7,68 +7,47 @@
     <!-- QRCode.js Library -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
     <style>
+        /* ================== RESET & BASIC STYLES ================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
-            background-color: #e0f7fa;
-            font-family: Arial, sans-serif;
-            max-width: 1200px;
+            background-color: #f0f4f8;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1400px;
             margin: 20px auto;
             padding: 20px;
             text-align: center;
+            direction: rtl;
         }
         h1 {
-            margin-bottom: 30px;
+            margin-bottom: 40px;
+            font-size: 2.5em;
+            color: #333;
         }
-        /* Container for all QR codes */
-        .qr-wrapper {
-            display: flex;
-            justify-content: space-around;
-            flex-wrap: wrap;
-            margin: 20px 0;
-        }
-        .qr-section {
-            width: 30%;
-            min-width: 250px;
-            margin: 10px;
-            padding: 20px;
-            border-radius: 8px;
-            position: relative;
-        }
-        .qr-section h2 {
-            margin-bottom: 15px;
-            font-size: 18px;
-        }
-        /* خلفيات مختلفة لكل QR */
-        #staticQRSection {
-            background-color: #fff3e0;
-        }
-        #currentQRSection {
-            background: #f0f0f0 url('https://i.imgur.com/6RMhx.gif') center center no-repeat; /* خلفية متحركة (يمكنك تغيير الرابط إلى صورة/GIF مناسبة) */
-            background-size: cover;
-        }
-        #middleQRSection {
-            background-color: #e8f5e9;
-        }
-        /* QR Code Container */
-        .qr-container {
-            display: none; /* مخفي بشكل افتراضي */
-            margin: 0 auto;
-        }
-        /* Button Styling */
+        /* ================== BUTTON STYLES ================== */
         button {
-            padding: 12px 24px;
-            font-size: 16px;
+            padding: 15px 30px;
+            font-size: 18px;
             cursor: pointer;
-            background: #4CAF50;
+            background: #007BFF;
             color: white;
             border: none;
-            border-radius: 4px;
-            transition: background 0.3s;
+            border-radius: 8px;
+            transition: background 0.3s, transform 0.2s;
+            margin-bottom: 30px;
+        }
+        button:hover {
+            background: #0056b3;
+            transform: scale(1.05);
         }
         button:disabled {
             background: #cccccc;
             cursor: not-allowed;
         }
-        /* Status Indicator */
+        /* ================== STATUS INDICATOR ================== */
         #statusIndicator {
             width: 20px;
             height: 20px;
@@ -76,12 +55,118 @@
             display: inline-block;
             margin-left: 10px;
         }
-        .active { background: #4CAF50; }
-        .inactive { background: #ff4444; }
-        /* Error Message Styling */
+        .active { background: #28a745; }
+        .inactive { background: #dc3545; }
+        /* ================== QR CODES CONTAINER ================== */
+        .qr-wrapper {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin: 20px 0;
+            position: relative;
+        }
+        .qr-section {
+            width: 300px;
+            height: 350px;
+            background-color: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .qr-section h2 {
+            margin-bottom: 15px;
+            font-size: 1.5em;
+            color: #007BFF;
+        }
+        /* ================== ARROW STYLES ================== */
+        .arrow {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50"><path d="M0,25 L40,25 L25,10 M40,25 L25,40" stroke="%23007BFF" stroke-width="5" fill="none"/></svg>') no-repeat center center;
+            background-size: contain;
+        }
+        /* Positioning arrows between sections */
+        .arrow.left {
+            top: 50%;
+            left: -25px;
+            transform: translateY(-50%);
+            animation: bounce 2s infinite;
+        }
+        .arrow.right {
+            top: 50%;
+            right: -25px;
+            transform: translateY(-50%);
+            animation: bounce 2s infinite;
+        }
+        /* Bounce animation for arrows */
+        @keyframes bounce {
+            0%, 100% { transform: translateY(-50%) translateX(0); }
+            50% { transform: translateY(-50%) translateX(10px); }
+        }
+        /* ================== LOCK EMOJIS ANIMATION ================== */
+        .qr-section .lock-emoji {
+            position: absolute;
+            font-size: 20px;
+            opacity: 0.3;
+            animation: float 5s infinite;
+        }
+        /* Generate multiple lock emojis with different positions and animation delays */
+        .qr-section .lock-emoji:nth-child(1) {
+            top: 10px;
+            left: 10px;
+            animation-delay: 0s;
+        }
+        .qr-section .lock-emoji:nth-child(2) {
+            top: 30px;
+            left: 250px;
+            animation-delay: 1s;
+        }
+        .qr-section .lock-emoji:nth-child(3) {
+            top: 150px;
+            left: 50px;
+            animation-delay: 2s;
+        }
+        .qr-section .lock-emoji:nth-child(4) {
+            top: 200px;
+            left: 200px;
+            animation-delay: 3s;
+        }
+        .qr-section .lock-emoji:nth-child(5) {
+            top: 280px;
+            left: 120px;
+            animation-delay: 4s;
+        }
+        @keyframes float {
+            0% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(360deg); }
+            100% { transform: translateY(0) rotate(720deg); }
+        }
+        /* ================== QR CONTAINER ================== */
+        .qr-container {
+            margin: 0 auto;
+            width: 200px;
+            height: 200px;
+            position: relative;
+        }
+        /* ================== ERROR MESSAGE ================== */
         #errorMessage {
-            color: red;
+            color: #dc3545;
             margin-top: 20px;
+            font-size: 1.1em;
+        }
+        /* ================== MEDIA QUERIES ================== */
+        @media (max-width: 1000px) {
+            .qr-wrapper {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arrow {
+                display: none;
+            }
         }
     </style>
 </head>
@@ -99,20 +184,55 @@
         <div id="staticQRSection" class="qr-section">
             <h2>الخطوة الأول</h2>
             <div id="staticQR" class="qr-container"></div>
+            <!-- Lock Emojis -->
+            <span class="lock-emoji">🔒</span>
+            <span class="lock-emoji">🔒</span>
+            <span class="lock-emoji">🔒</span>
+            <span class="lock-emoji">🔒</span>
+            <span class="lock-emoji">🔒</span>
+            <!-- Arrow pointing to this QR -->
+            <div class="arrow left"></div>
         </div>
         
-        <!-- Middle QR Code Section (يمكن إضافة رموز QR إضافية هنا إذا لزم الأمر) -->
-        <div id="middleQRSection" class="qr-section">
-            <h2>خطوة إضافية</h2>
-            <div id="middleQR" class="qr-container">
-                <!-- يمكنك إضافة رمز QR إضافي هنا إذا كنت تحتاج إلى ذلك -->
-            </div>
+        <!-- Middle QR Code Sections -->
+        <div id="middleQRSection1" class="qr-section">
+            <h2>الخطوة الإضافية 1</h2>
+            <div id="middleQR1" class="qr-container"></div>
+            <!-- Lock Emojis -->
+            <span class="lock-emoji">🔒</span>
+            <span class="lock-emoji">🔒</span>
+            <span class="lock-emoji">🔒</span>
+            <span class="lock-emoji">🔒</span>
+            <span class="lock-emoji">🔒</span>
+            <!-- Arrow pointing to this QR -->
+            <div class="arrow left"></div>
+        </div>
+        
+        <div id="middleQRSection2" class="qr-section">
+            <h2>الخطوة الإضافية 2</h2>
+            <div id="middleQR2" class="qr-container"></div>
+            <!-- Lock Emojis -->
+            <span class="lock-emoji">🔒</span>
+            <span class="lock-emoji">🔒</span>
+            <span class="lock-emoji">🔒</span>
+            <span class="lock-emoji">🔒</span>
+            <span class="lock-emoji">🔒</span>
+            <!-- Arrow pointing to this QR -->
+            <div class="arrow right"></div>
         </div>
         
         <!-- Current Dynamic QR Code Section -->
         <div id="currentQRSection" class="qr-section">
             <h2>الخطوة الثانية</h2>
             <div id="qrContainer" class="qr-container"></div>
+            <!-- Lock Emojis -->
+            <span class="lock-emoji">🔒</span>
+            <span class="lock-emoji">🔒</span>
+            <span class="lock-emoji">🔒</span>
+            <span class="lock-emoji">🔒</span>
+            <span class="lock-emoji">🔒</span>
+            <!-- Arrow pointing to this QR -->
+            <div class="arrow right"></div>
         </div>
     </div>
 
@@ -132,6 +252,8 @@
         const statusIndicator = document.getElementById('statusIndicator');
         const qrContainer = document.getElementById('qrContainer');
         const staticQRContainer = document.getElementById('staticQR');
+        const middleQR1Container = document.getElementById('middleQR1');
+        const middleQR2Container = document.getElementById('middleQR2');
         const errorMessage = document.getElementById('errorMessage');
 
         // ================== FUNCTIONS ================== //
@@ -174,7 +296,7 @@
         }
 
         /**
-         * Function to generate a new QR code with the fetched accurate timestamp.
+         * Function to generate a new dynamic QR code with the fetched accurate timestamp.
          */
         async function generateNewQR() {
             try {
@@ -227,6 +349,36 @@
         }
 
         /**
+         * Function to generate additional static QR codes in the middle sections.
+         */
+        function generateMiddleQRs() {
+            const middleURL1 = 'https://example.com/middle1'; // قم بتغيير هذا إلى الرابط المطلوب
+            const middleURL2 = 'https://example.com/middle2'; // قم بتغيير هذا إلى الرابط المطلوب
+
+            // توليد QR للخطوة الإضافية 1
+            middleQR1Container.innerHTML = '';
+            new QRCode(middleQR1Container, {
+                text: middleURL1,
+                width: 200,
+                height: 200,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            // توليد QR للخطوة الإضافية 2
+            middleQR2Container.innerHTML = '';
+            new QRCode(middleQR2Container, {
+                text: middleURL2,
+                width: 200,
+                height: 200,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        /**
          * Function to start a new attendance session.
          */
         function startNewSession() {
@@ -235,12 +387,13 @@
             errorMessage.textContent = ''; // Clear any previous error messages
             generateNewQR();
             generateStaticQR();
+            generateMiddleQRs();
             document.querySelectorAll('.qr-container').forEach(container => {
                 container.style.display = 'block';
             });
             generationInterval = setInterval(generateNewQR, REFRESH_INTERVAL);
             toggleBtn.textContent = 'إيقاف جلسة الحضور';
-            toggleBtn.style.background = '#ff4444';
+            toggleBtn.style.background = '#dc3545';
             statusIndicator.className = 'active';
         }
 
@@ -253,13 +406,15 @@
             console.log('Ending current session.');
             currentSessionId = null;
             toggleBtn.textContent = 'بدء جلسة الحضور';
-            toggleBtn.style.background = '#4CAF50';
+            toggleBtn.style.background = '#007BFF';
             statusIndicator.className = 'inactive';
             document.querySelectorAll('.qr-container').forEach(container => {
                 container.style.display = 'none';
             });
             qrContainer.innerHTML = '';
             staticQRContainer.innerHTML = '';
+            middleQR1Container.innerHTML = '';
+            middleQR2Container.innerHTML = '';
             errorMessage.textContent = ''; // Clear any error messages
         }
 
@@ -272,8 +427,11 @@
             } else {
                 toggleBtn.textContent = 'بدء الجلسة ...';
                 toggleBtn.disabled = true;
-                startNewSession();
-                toggleBtn.disabled = false;
+                // Start session after a brief delay to show button text change
+                setTimeout(() => {
+                    startNewSession();
+                    toggleBtn.disabled = false;
+                }, 500);
             }
         });
 
