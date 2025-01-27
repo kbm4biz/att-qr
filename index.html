@@ -1,35 +1,193 @@
-async function generateNewQR() {
-    try {
-        // Fetch accurate time with retries
-        const accurateTime = await fetchAccurateTimeWithRetry();
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام الحضور الذكي</title>
+    <!-- QRCode.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
+    <style>
+        body {
+            background-color: #e0f7fa;
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            text-align: center;
+        }
+        #qrContainer {
+            margin: 20px 0;
+            min-height: 250px;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        #statusIndicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-left: 10px;
+        }
+        .active { background: #4CAF50; }
+        .inactive { background: #ff4444; }
+        /* Error Message Styling */
+        #errorMessage {
+            color: red;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>نظام الحضور الذكي</h1>
+    <!-- Start/Stop Session Button -->
+    <button id="toggleBtn">بدء جلسة الحضور</button>
+    
+    <!-- Status Indicator -->
+    <div id="statusIndicator" class="inactive" title="حالة الجلسة"></div>
+    
+    <!-- QR Code Container -->
+    <div id="qrContainer"></div>
 
-        // Calculate timestamp based on 10-second windows
-        const timestamp = Math.floor(accurateTime.getTime() / 10000); // 10-second windows
-        console.log('Generating QR Code with timestamp:', timestamp);
+    <!-- Error Message Container -->
+    <div id="errorMessage"></div>
 
-        const payload = {
-            t: timestamp,
-            s: currentSessionId,
-            h: simpleHash(`${timestamp}${currentSessionId}${SECRET_PHRASE}`)
-        };
-        const token = btoa(JSON.stringify(payload)).replace(/=+$/, '');
+    <script>
+        // ================== CONFIGURATIONS ================== //
+        const SECRET_PHRASE = 'SCHOOL_SECRET_2024';
+        const REFRESH_INTERVAL = 10000; // 10 seconds
+        const TIME_API_URL = 'https://timeapi.io/api/Time/current/zone?timeZone=Asia/Riyadh'; // Using TimeAPI.io
 
-        console.log('QR Payload:', payload);
-        console.log('QR Token:', token);
+        let generationInterval = null;
+        let currentSessionId = null;
+        const toggleBtn = document.getElementById('toggleBtn');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const qrContainer = document.getElementById('qrContainer');
+        const errorMessage = document.getElementById('errorMessage');
 
-        // Generate QR Code
-        qrContainer.innerHTML = '';
-        new QRCode(qrContainer, {
-            text: token,
-            width: 250,
-            height: 250,
-            colorDark: "#000000",
-            colorLight: "#ffffff",
-            correctLevel: QRCode.CorrectLevel.H
+        // ================== FUNCTIONS ================== //
+
+        /**
+         * Simple hash function to generate a hash based on input string.
+         * Must match the hash function used in the Student Tool.
+         * @param {string} str - The input string to hash.
+         * @returns {string} - The generated hash.
+         */
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = (hash << 5) - hash + char;
+                hash |= 0; // Convert to 32bit integer
+            }
+            return Math.abs(hash).toString(36).slice(-8).padStart(8, '0');
+        }
+
+        /**
+         * Function to fetch accurate current time from TimeAPI.io.
+         * @returns {Promise<Date>} - A promise that resolves to the current accurate time.
+         */
+        async function fetchAccurateTime() {
+            try {
+                const response = await fetch(TIME_API_URL);
+                if (!response.ok) {
+                    throw new Error(`Network response was not ok: ${response.statusText}`);
+                }
+                const data = await response.json();
+                const datetime = data.dateTime; // ISO 8601 format
+                const accurateTime = new Date(datetime);
+                console.log('Fetched Accurate Time:', accurateTime.toISOString());
+                return accurateTime;
+            } catch (error) {
+                console.error('Error fetching accurate time:', error);
+                throw error;
+            }
+        }
+
+        /**
+         * Function to generate a new QR code with the fetched accurate timestamp.
+         */
+        async function generateNewQR() {
+            try {
+                // Fetch accurate time
+                const accurateTime = await fetchAccurateTime();
+
+                // Calculate timestamp based on 10-second windows
+                const timestamp = Math.floor(accurateTime.getTime() / 10000); // 10-second windows
+                console.log('Generating QR Code with timestamp:', timestamp);
+
+                const payload = {
+                    t: timestamp,
+                    s: currentSessionId,
+                    h: simpleHash(`${timestamp}${currentSessionId}${SECRET_PHRASE}`)
+                };
+                const token = btoa(JSON.stringify(payload)).replace(/=+$/, '');
+
+                console.log('QR Payload:', payload);
+                console.log('QR Token:', token);
+
+                // Generate QR Code
+                qrContainer.innerHTML = '';
+                new QRCode(qrContainer, {
+                    text: token,
+                    width: 250,
+                    height: 250,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            } catch (error) {
+                // Display error message to the user
+                errorMessage.textContent = 'حدث خطأ في الحصول على الوقت الدقيق. يرجى التحقق من اتصال الإنترنت وإعادة المحاولة.';
+            }
+        }
+
+        /**
+         * Function to start a new attendance session.
+         */
+        function startNewSession() {
+            currentSessionId = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+            console.log('Starting new session with ID:', currentSessionId);
+            errorMessage.textContent = ''; // Clear any previous error messages
+            generateNewQR();
+            generationInterval = setInterval(generateNewQR, REFRESH_INTERVAL);
+            toggleBtn.textContent = 'إيقاف جلسة الحضور';
+            toggleBtn.style.background = '#ff4444';
+            statusIndicator.className = 'active';
+        }
+
+        /**
+         * Function to end the current attendance session.
+         */
+        function endCurrentSession() {
+            clearInterval(generationInterval);
+            generationInterval = null;
+            console.log('Ending current session.');
+            currentSessionId = null;
+            toggleBtn.textContent = 'بدء جلسة الحضور';
+            toggleBtn.style.background = '#4CAF50';
+            statusIndicator.className = 'inactive';
+            qrContainer.innerHTML = '';
+            errorMessage.textContent = ''; // Clear any error messages
+        }
+
+        /**
+         * Event listener for the toggle button to start/end session.
+         */
+        toggleBtn.addEventListener('click', () => {
+            generationInterval ? endCurrentSession() : startNewSession();
         });
-    } catch (error) {
-        // Display error message to the user
-        errorMessage.textContent = 'حدث خطأ في الحصول على الوقت الدقيق بعد عدة محاولات. يرجى التحقق من اتصال الإنترنت وإعادة المحاولة.';
-        console.error('Final Error:', error);
-    }
-}
+    </script>
+</body>
+</html>
