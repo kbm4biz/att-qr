@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>نظام الحضور الذكي</title>
+    <!-- QRCode.js Library -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
     <style>
         body {
@@ -41,30 +42,12 @@
         }
         .active { background: #4CAF50; }
         .inactive { background: #ff4444; }
-        /* Additional styling for the toggle */
-        .toggle-container {
-            display: inline-block;
-            vertical-align: middle;
-            margin-left: 10px;
-        }
-        .toggle-label {
-            font-size: 16px;
-        }
-        .toggle-input {
-            margin-right: 5px;
-        }
     </style>
 </head>
 <body>
     <h1>نظام الحضور الذكي</h1>
-    <!-- Start Session Button -->
+    <!-- Start/Stop Session Button -->
     <button id="toggleBtn">بدء جلسة الحضور</button>
-    
-    <!-- School Mode Toggle -->
-    <label class="toggle-container">
-        <input type="checkbox" id="schoolModeToggle" class="toggle-input">
-        <span class="toggle-label">وضع 2)</span>
-    </label>
     
     <!-- Status Indicator -->
     <div id="statusIndicator" class="inactive" title="حالة الجلسة"></div>
@@ -72,81 +55,106 @@
     <!-- QR Code Container -->
     <div id="qrContainer"></div>
 
+    <!-- Error Message Container -->
+    <div id="errorMessage" style="color: red; margin-top: 20px;"></div>
+
     <script>
         // ================== CONFIGURATIONS ================== //
         const SECRET_PHRASE = 'SCHOOL_SECRET_2024';
         const REFRESH_INTERVAL = 10000; // 10 seconds
-        const VALIDITY_WINDOW = 15; // Not directly used, but can be used for additional logic
+        const TIME_API_URL = 'https://worldtimeapi.org/api/timezone/Asia/Riyadh';
 
         let generationInterval = null;
         let currentSessionId = null;
         const toggleBtn = document.getElementById('toggleBtn');
         const statusIndicator = document.getElementById('statusIndicator');
         const qrContainer = document.getElementById('qrContainer');
-        const schoolModeToggle = document.getElementById('schoolModeToggle'); // New toggle element
+        const errorMessage = document.getElementById('errorMessage');
 
         // ================== FUNCTIONS ================== //
 
-        // Simple hash function (must match trainee tool's hash)
+        /**
+         * Simple hash function to generate a hash based on input string.
+         * Must match the hash function used in the Student Tool.
+         * @param {string} str - The input string to hash.
+         * @returns {string} - The generated hash.
+         */
         function simpleHash(str) {
             let hash = 0;
             for (let i = 0; i < str.length; i++) {
                 const char = str.charCodeAt(i);
                 hash = (hash << 5) - hash + char;
-                hash |= 0;
+                hash |= 0; // Convert to 32bit integer
             }
             return Math.abs(hash).toString(36).slice(-8).padStart(8, '0');
         }
 
-        // Function to get current time in Saudi Arabia
-        function getSaudiTime() {
-            const now = new Date();
-            const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-            const saudiOffset = 3 * 60 * 60 * 1000; // UTC+3
-            const saudiTime = new Date(utcTime + saudiOffset);
-            return saudiTime;
-        }
-
-        // Function to generate a new QR code
-        function generateNewQR() {
-            const saudiTime = getSaudiTime();
-            let correctedTime = saudiTime.getTime();
-
-            // Check if School Mode is active
-            if (schoolModeToggle.checked) {
-                const TIME_CORRECTION = 10 * 60 * 1000; // 10 minutes in milliseconds
-                correctedTime -= TIME_CORRECTION;
-                console.log('School Mode Active: Subtracting 10 minutes from timestamp.');
+        /**
+         * Function to fetch accurate current time from WorldTimeAPI.
+         * @returns {Promise<Date>} - A promise that resolves to the current accurate time.
+         */
+        async function fetchAccurateTime() {
+            try {
+                const response = await fetch(TIME_API_URL);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const data = await response.json();
+                const datetime = data.datetime; // ISO 8601 format
+                const accurateTime = new Date(datetime);
+                console.log('Fetched Accurate Time:', accurateTime.toISOString());
+                return accurateTime;
+            } catch (error) {
+                console.error('Error fetching accurate time:', error);
+                throw error;
             }
-
-            const timestamp = Math.floor(correctedTime / 10000); // 10-second windows
-            console.log('Generating QR Code with timestamp:', timestamp);
-
-            const payload = {
-                t: timestamp,
-                s: currentSessionId,
-                h: simpleHash(`${timestamp}${currentSessionId}${SECRET_PHRASE}`)
-            };
-            const token = btoa(JSON.stringify(payload)).replace(/=+$/, '');
-
-            console.log('QR Payload:', payload);
-            console.log('QR Token:', token);
-
-            qrContainer.innerHTML = '';
-            new QRCode(qrContainer, {
-                text: token,
-                width: 250,
-                height: 250,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.H
-            });
         }
 
-        // Function to start a new attendance session
+        /**
+         * Function to generate a new QR code with the fetched accurate timestamp.
+         */
+        async function generateNewQR() {
+            try {
+                // Fetch accurate time
+                const accurateTime = await fetchAccurateTime();
+
+                // Calculate timestamp based on 10-second windows
+                const timestamp = Math.floor(accurateTime.getTime() / 10000); // 10-second windows
+                console.log('Generating QR Code with timestamp:', timestamp);
+
+                const payload = {
+                    t: timestamp,
+                    s: currentSessionId,
+                    h: simpleHash(`${timestamp}${currentSessionId}${SECRET_PHRASE}`)
+                };
+                const token = btoa(JSON.stringify(payload)).replace(/=+$/, '');
+
+                console.log('QR Payload:', payload);
+                console.log('QR Token:', token);
+
+                // Generate QR Code
+                qrContainer.innerHTML = '';
+                new QRCode(qrContainer, {
+                    text: token,
+                    width: 250,
+                    height: 250,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            } catch (error) {
+                // Display error message to the user
+                errorMessage.textContent = 'حدث خطأ في الحصول على الوقت الدقيق. يرجى التحقق من اتصال الإنترنت وإعادة المحاولة.';
+            }
+        }
+
+        /**
+         * Function to start a new attendance session.
+         */
         function startNewSession() {
             currentSessionId = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
             console.log('Starting new session with ID:', currentSessionId);
+            errorMessage.textContent = ''; // Clear any previous error messages
             generateNewQR();
             generationInterval = setInterval(generateNewQR, REFRESH_INTERVAL);
             toggleBtn.textContent = 'إيقاف جلسة الحضور';
@@ -154,7 +162,9 @@
             statusIndicator.className = 'active';
         }
 
-        // Function to end the current attendance session
+        /**
+         * Function to end the current attendance session.
+         */
         function endCurrentSession() {
             clearInterval(generationInterval);
             generationInterval = null;
@@ -164,9 +174,12 @@
             toggleBtn.style.background = '#4CAF50';
             statusIndicator.className = 'inactive';
             qrContainer.innerHTML = '';
+            errorMessage.textContent = ''; // Clear any error messages
         }
 
-        // Event listener for the toggle button
+        /**
+         * Event listener for the toggle button to start/end session.
+         */
         toggleBtn.addEventListener('click', () => {
             generationInterval ? endCurrentSession() : startNewSession();
         });
