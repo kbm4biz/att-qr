@@ -41,12 +41,35 @@
         }
         .active { background: #4CAF50; }
         .inactive { background: #ff4444; }
+        /* Additional styling for the toggle */
+        .toggle-container {
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 10px;
+        }
+        .toggle-label {
+            font-size: 16px;
+        }
+        .toggle-input {
+            margin-right: 5px;
+        }
     </style>
 </head>
 <body>
     <h1>نظام الحضور الذكي</h1>
+    <!-- Start Session Button -->
     <button id="toggleBtn">بدء جلسة الحضور</button>
+    
+    <!-- School Mode Toggle -->
+    <label class="toggle-container">
+        <input type="checkbox" id="schoolModeToggle" class="toggle-input">
+        <span class="toggle-label">وضع الكلية (+10 دقائق)</span>
+    </label>
+    
+    <!-- Status Indicator -->
     <div id="statusIndicator" class="inactive" title="حالة الجلسة"></div>
+    
+    <!-- QR Code Container -->
     <div id="qrContainer"></div>
 
     <script>
@@ -60,6 +83,7 @@
         const toggleBtn = document.getElementById('toggleBtn');
         const statusIndicator = document.getElementById('statusIndicator');
         const qrContainer = document.getElementById('qrContainer');
+        const schoolModeToggle = document.getElementById('schoolModeToggle'); // New toggle element
 
         // ================== FUNCTIONS ================== //
 
@@ -86,7 +110,16 @@
         // Function to generate a new QR code
         function generateNewQR() {
             const saudiTime = getSaudiTime();
-            const timestamp = Math.floor(saudiTime.getTime() / 10000); // 10-second windows
+            let correctedTime = saudiTime.getTime();
+
+            // Check if School Mode is active
+            if (schoolModeToggle.checked) {
+                const TIME_CORRECTION = 10 * 60 * 1000; // 10 minutes in milliseconds
+                correctedTime -= TIME_CORRECTION;
+                console.log('School Mode Active: Subtracting 10 minutes from timestamp.');
+            }
+
+            const timestamp = Math.floor(correctedTime / 10000); // 10-second windows
             console.log('Generating QR Code with timestamp:', timestamp);
 
             const payload = {
