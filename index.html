@@ -42,6 +42,11 @@
         }
         .active { background: #4CAF50; }
         .inactive { background: #ff4444; }
+        /* Error Message Styling */
+        #errorMessage {
+            color: red;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -56,13 +61,13 @@
     <div id="qrContainer"></div>
 
     <!-- Error Message Container -->
-    <div id="errorMessage" style="color: red; margin-top: 20px;"></div>
+    <div id="errorMessage"></div>
 
     <script>
         // ================== CONFIGURATIONS ================== //
         const SECRET_PHRASE = 'SCHOOL_SECRET_2024';
         const REFRESH_INTERVAL = 10000; // 10 seconds
-        const TIME_API_URL = 'https://worldtimeapi.org/api/timezone/Asia/Riyadh';
+        const TIME_API_URL = 'https://timeapi.io/api/Time/current/zone?timeZone=Asia/Riyadh'; // Using TimeAPI.io
 
         let generationInterval = null;
         let currentSessionId = null;
@@ -90,17 +95,17 @@
         }
 
         /**
-         * Function to fetch accurate current time from WorldTimeAPI.
+         * Function to fetch accurate current time from TimeAPI.io.
          * @returns {Promise<Date>} - A promise that resolves to the current accurate time.
          */
         async function fetchAccurateTime() {
             try {
                 const response = await fetch(TIME_API_URL);
                 if (!response.ok) {
-                    throw new Error('Network response was not ok');
+                    throw new Error(`Network response was not ok: ${response.statusText}`);
                 }
                 const data = await response.json();
-                const datetime = data.datetime; // ISO 8601 format
+                const datetime = data.dateTime; // ISO 8601 format
                 const accurateTime = new Date(datetime);
                 console.log('Fetched Accurate Time:', accurateTime.toISOString());
                 return accurateTime;
