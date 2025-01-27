@@ -123,14 +123,15 @@
                 // Fetch accurate time
                 const accurateTime = await fetchAccurateTime();
 
-                // Calculate timestamp based on 10-second windows
-                const timestamp = Math.floor(accurateTime.getTime() / 10000); // 10-second windows
+                // Calculate timestamp based on seconds since epoch
+                const timestamp = Math.floor(accurateTime.getTime() / 1000); // Seconds since epoch
                 console.log('Generating QR Code with timestamp:', timestamp);
 
                 const payload = {
                     t: timestamp,
                     s: currentSessionId,
-                    h: simpleHash(`${timestamp}${currentSessionId}${SECRET_PHRASE}`)
+                    h: simpleHash(`${timestamp}${currentSessionId}${SECRET_PHRASE}`),
+                    datetime: accurateTime.toISOString()
                 };
                 const token = btoa(JSON.stringify(payload)).replace(/=+$/, '');
 
