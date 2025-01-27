@@ -10,15 +10,50 @@
         body {
             background-color: #e0f7fa;
             font-family: Arial, sans-serif;
-            max-width: 800px;
+            max-width: 1200px;
             margin: 20px auto;
             padding: 20px;
             text-align: center;
         }
-        #qrContainer {
-            margin: 20px 0;
-            min-height: 250px;
+        h1 {
+            margin-bottom: 30px;
         }
+        /* Container for all QR codes */
+        .qr-wrapper {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        .qr-section {
+            width: 30%;
+            min-width: 250px;
+            margin: 10px;
+            padding: 20px;
+            border-radius: 8px;
+            position: relative;
+        }
+        .qr-section h2 {
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        /* خلفيات مختلفة لكل QR */
+        #staticQRSection {
+            background-color: #fff3e0;
+        }
+        #currentQRSection {
+            background: #f0f0f0 url('https://i.imgur.com/6RMhx.gif') center center no-repeat; /* خلفية متحركة (يمكنك تغيير الرابط إلى صورة/GIF مناسبة) */
+            background-size: cover;
+        }
+        #middleQRSection {
+            background-color: #e8f5e9;
+        }
+        /* QR Code Container */
+        .qr-container {
+            display: none; /* مخفي بشكل افتراضي */
+            margin: 0 auto;
+        }
+        /* Button Styling */
         button {
             padding: 12px 24px;
             font-size: 16px;
@@ -33,6 +68,7 @@
             background: #cccccc;
             cursor: not-allowed;
         }
+        /* Status Indicator */
         #statusIndicator {
             width: 20px;
             height: 20px;
@@ -57,8 +93,28 @@
     <!-- Status Indicator -->
     <div id="statusIndicator" class="inactive" title="حالة الجلسة"></div>
     
-    <!-- QR Code Container -->
-    <div id="qrContainer"></div>
+    <!-- QR Codes Container -->
+    <div class="qr-wrapper">
+        <!-- Static QR Code Section -->
+        <div id="staticQRSection" class="qr-section">
+            <h2>الخطوة الأول</h2>
+            <div id="staticQR" class="qr-container"></div>
+        </div>
+        
+        <!-- Middle QR Code Section (يمكن إضافة رموز QR إضافية هنا إذا لزم الأمر) -->
+        <div id="middleQRSection" class="qr-section">
+            <h2>خطوة إضافية</h2>
+            <div id="middleQR" class="qr-container">
+                <!-- يمكنك إضافة رمز QR إضافي هنا إذا كنت تحتاج إلى ذلك -->
+            </div>
+        </div>
+        
+        <!-- Current Dynamic QR Code Section -->
+        <div id="currentQRSection" class="qr-section">
+            <h2>الخطوة الثانية</h2>
+            <div id="qrContainer" class="qr-container"></div>
+        </div>
+    </div>
 
     <!-- Error Message Container -->
     <div id="errorMessage"></div>
@@ -68,12 +124,14 @@
         const SECRET_PHRASE = 'SCHOOL_SECRET_2024';
         const REFRESH_INTERVAL = 10000; // 10 seconds
         const TIME_API_URL = 'https://timeapi.io/api/Time/current/zone?timeZone=Asia/Riyadh'; // Using TimeAPI.io
+        const STATIC_QR_URL = 'https://kbm4biz.github.io/att-qrc';
 
         let generationInterval = null;
         let currentSessionId = null;
         const toggleBtn = document.getElementById('toggleBtn');
         const statusIndicator = document.getElementById('statusIndicator');
         const qrContainer = document.getElementById('qrContainer');
+        const staticQRContainer = document.getElementById('staticQR');
         const errorMessage = document.getElementById('errorMessage');
 
         // ================== FUNCTIONS ================== //
@@ -141,8 +199,8 @@
                 qrContainer.innerHTML = '';
                 new QRCode(qrContainer, {
                     text: token,
-                    width: 250,
-                    height: 250,
+                    width: 200,
+                    height: 200,
                     colorDark: "#000000",
                     colorLight: "#ffffff",
                     correctLevel: QRCode.CorrectLevel.H
@@ -154,6 +212,21 @@
         }
 
         /**
+         * Function to generate the static QR code.
+         */
+        function generateStaticQR() {
+            staticQRContainer.innerHTML = '';
+            new QRCode(staticQRContainer, {
+                text: STATIC_QR_URL,
+                width: 200,
+                height: 200,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        /**
          * Function to start a new attendance session.
          */
         function startNewSession() {
@@ -161,6 +234,10 @@
             console.log('Starting new session with ID:', currentSessionId);
             errorMessage.textContent = ''; // Clear any previous error messages
             generateNewQR();
+            generateStaticQR();
+            document.querySelectorAll('.qr-container').forEach(container => {
+                container.style.display = 'block';
+            });
             generationInterval = setInterval(generateNewQR, REFRESH_INTERVAL);
             toggleBtn.textContent = 'إيقاف جلسة الحضور';
             toggleBtn.style.background = '#ff4444';
@@ -178,7 +255,11 @@
             toggleBtn.textContent = 'بدء جلسة الحضور';
             toggleBtn.style.background = '#4CAF50';
             statusIndicator.className = 'inactive';
+            document.querySelectorAll('.qr-container').forEach(container => {
+                container.style.display = 'none';
+            });
             qrContainer.innerHTML = '';
+            staticQRContainer.innerHTML = '';
             errorMessage.textContent = ''; // Clear any error messages
         }
 
@@ -186,8 +267,23 @@
          * Event listener for the toggle button to start/end session.
          */
         toggleBtn.addEventListener('click', () => {
-            generationInterval ? endCurrentSession() : startNewSession();
+            if (generationInterval) {
+                endCurrentSession();
+            } else {
+                toggleBtn.textContent = 'بدء الجلسة ...';
+                toggleBtn.disabled = true;
+                startNewSession();
+                toggleBtn.disabled = false;
+            }
         });
+
+        // ================== INITIALIZATION ================== //
+        // إخفاء جميع رموز QR عند تحميل الصفحة
+        window.onload = () => {
+            document.querySelectorAll('.qr-container').forEach(container => {
+                container.style.display = 'none';
+            });
+        };
     </script>
 </body>
 </html>
