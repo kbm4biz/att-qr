@@ -426,31 +426,34 @@
          * Plays an ultrasound wave based on the given token using GGWave.
          * @param {string} token
          */
-function playUltrasoundToken(token) {
-    if (!ggwave) {
-        console.warn("GGWave is not ready yet.");
-        return;
-    }
-    if (audioContext.state === 'suspended') {
-        audioContext.resume();
-    }
+        function playUltrasoundToken(token) {
+            if (!ggwave) {
+                console.warn("GGWave is not ready yet.");
+                return;
+            }
+            if (audioContext.state === 'suspended') {
+                // Attempt to resume audio context if not already playing
+                audioContext.resume();
+            }
 
-    // For a brief test, use an audible protocol:
-    const waveSamples = ggwave.encode(token, GGWAVE_PROTOCOL_AUDIBLE_NORMAL);
+            // Encode data into wave samples
+            // Using one of the ULTRASOUND protocols for “silent” or near-ultrasonic range
+            const waveSamples = ggwave.encode(token, GGWAVE_PROTOCOL_ULTRASOUND_FAST);
 
-    const buffer = audioContext.createBuffer(1, waveSamples.length, audioContext.sampleRate);
-    const channelData = buffer.getChannelData(0);
+            // Convert samples to an AudioBuffer
+            const buffer = audioContext.createBuffer(1, waveSamples.length, audioContext.sampleRate);
+            const channelData = buffer.getChannelData(0);
+            for (let i = 0; i < waveSamples.length; i++) {
+                // waveSamples are bytes [0..255], convert them to float [-1..1]
+                channelData[i] = (waveSamples[i] - 128) / 128.0;
+            }
 
-    for (let i = 0; i < waveSamples.length; i++) {
-        channelData[i] = (waveSamples[i] - 128) / 128.0;
-    }
-
-    const source = audioContext.createBufferSource();
-    source.buffer = buffer;
-    source.connect(audioContext.destination);
-    source.start();
-}
-
+            // Play the AudioBuffer
+            const source = audioContext.createBufferSource();
+            source.buffer = buffer;
+            source.connect(audioContext.destination);
+            source.start();
+        }
     </script>
 </body>
 </html>
