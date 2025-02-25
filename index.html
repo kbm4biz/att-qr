@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام الحضور الذكي</title>
+    <title>نظام الحضور الذاتي </title>
     <!-- QRCode.js Library -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
     <style>
@@ -91,10 +91,11 @@
             background-size: contain;
             transition: transform 0.3s;
         }
+        /* Positioning arrows between sections */
         .arrow.left {
             top: 50%;
             left: -25px;
-            transform: translateY(-50%) rotate(180deg);
+            transform: translateY(-50%) rotate(180deg); /* Flip the arrow */
             animation: bounce 2s infinite;
         }
         .arrow.right {
@@ -103,6 +104,7 @@
             transform: translateY(-50%);
             animation: bounce 2s infinite;
         }
+        /* Bounce animation for arrows */
         @keyframes bounce {
             0%, 100% { transform: translateY(-50%) translateX(0) rotate(180deg); }
             50% { transform: translateY(-50%) translateX(10px) rotate(180deg); }
@@ -114,7 +116,8 @@
             opacity: 0.2;
             animation: float 6s infinite;
         }
-        .qr-section .lock-emoji:nth-child(3) {
+        /* Generate multiple lock emojis with different positions and animation delays */
+        .qr-section .lock-emoji:nth-child(3) { /* Adjust nth-child based on number of elements */
             top: 10px;
             left: 10px;
             animation-delay: 0s;
@@ -313,12 +316,6 @@
                     colorLight: "#ffffff",
                     correctLevel: QRCode.CorrectLevel.H
                 });
-
-                // ==============================
-                // Call the function to play ultrasound
-                // ==============================
-                playUltrasoundToken(token);
-
             } catch (error) {
                 // Display error message to the user
                 errorMessage.textContent = 'حدث خطأ في الحصول على الوقت الدقيق. يرجى التحقق من اتصال الإنترنت وإعادة المحاولة.';
@@ -401,59 +398,6 @@
                 container.style.display = 'none';
             });
         };
-    </script>
-
-    <!-- ============================== -->
-    <!-- 1) Include GGWave from CDN   -->
-    <!-- ============================== -->
-    <script src="https://cdn.jsdelivr.net/npm/ggwave/dist/ggwave.min.js"></script>
-    <script>
-        // Create a GGWave instance (global)
-        let ggwave = null;
-        let audioContext = null;
-
-        // Initialize GGWave once the page fully loads
-        window.addEventListener('load', () => {
-            audioContext = new AudioContext();
-            ggwave = new GGWave({
-                // Some recommended configuration:
-                // sampleRate: 48000,  // typical sample rate
-                // preferJS: false,    // prefer using WebAssembly if available
-            });
-        });
-
-        /**
-         * Plays an ultrasound wave based on the given token using GGWave.
-         * @param {string} token
-         */
-        function playUltrasoundToken(token) {
-            if (!ggwave) {
-                console.warn("GGWave is not ready yet.");
-                return;
-            }
-            if (audioContext.state === 'suspended') {
-                // Attempt to resume audio context if not already playing
-                audioContext.resume();
-            }
-
-            // Encode data into wave samples
-            // Using one of the ULTRASOUND protocols for “silent” or near-ultrasonic range
-            const waveSamples = ggwave.encode(token, GGWAVE_PROTOCOL_ULTRASOUND_FAST);
-
-            // Convert samples to an AudioBuffer
-            const buffer = audioContext.createBuffer(1, waveSamples.length, audioContext.sampleRate);
-            const channelData = buffer.getChannelData(0);
-            for (let i = 0; i < waveSamples.length; i++) {
-                // waveSamples are bytes [0..255], convert them to float [-1..1]
-                channelData[i] = (waveSamples[i] - 128) / 128.0;
-            }
-
-            // Play the AudioBuffer
-            const source = audioContext.createBufferSource();
-            source.buffer = buffer;
-            source.connect(audioContext.destination);
-            source.start();
-        }
     </script>
 </body>
 </html>
